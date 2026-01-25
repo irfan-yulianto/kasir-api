@@ -297,10 +297,11 @@ func main() {
 		port = "8080"
 	}
 
-	fmt.Printf("Server running di port %s\n", port)
+	addr := "0.0.0.0:" + port
+	fmt.Printf("Server starting on %s\n", addr)
 
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(addr, nil)
 	if err != nil {
-		fmt.Println("gagal running server")
+		fmt.Printf("Failed to start server: %v\n", err)
 	}
 }
