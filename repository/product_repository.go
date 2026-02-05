@@ -5,37 +5,37 @@ import (
 	"kasir-api/model"
 )
 
-type ProdukRepository interface {
-	GetAll() ([]model.Produk, error)
-	GetAllWithCategory() ([]model.Produk, error)
-	GetByID(id int) (*model.Produk, error)
-	GetByIDWithCategory(id int) (*model.Produk, error)
-	GetByCategoryID(categoryID int) ([]model.Produk, error)
-	Create(produk *model.Produk) error
-	Update(id int, produk *model.Produk) error
+type ProductRepository interface {
+	GetAll() ([]model.Product, error)
+	GetAllWithCategory() ([]model.Product, error)
+	GetByID(id int) (*model.Product, error)
+	GetByIDWithCategory(id int) (*model.Product, error)
+	GetByCategoryID(categoryID int) ([]model.Product, error)
+	Create(product *model.Product) error
+	Update(id int, product *model.Product) error
 	Delete(id int) error
 }
 
-type produkRepository struct {
+type productRepository struct {
 	db *sql.DB
 }
 
-func NewProdukRepository(db *sql.DB) ProdukRepository {
-	return &produkRepository{db: db}
+func NewProductRepository(db *sql.DB) ProductRepository {
+	return &productRepository{db: db}
 }
 
-func (r *produkRepository) GetAll() ([]model.Produk, error) {
-	query := "SELECT id, nama, harga, stok, category_id FROM produk ORDER BY id"
+func (r *productRepository) GetAll() ([]model.Product, error) {
+	query := "SELECT id, name, price, stock, category_id FROM products ORDER BY id"
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var products []model.Produk
+	var products []model.Product
 	for rows.Next() {
-		var p model.Produk
-		if err := rows.Scan(&p.ID, &p.Nama, &p.Harga, &p.Stok, &p.CategoryID); err != nil {
+		var p model.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.CategoryID); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -44,13 +44,13 @@ func (r *produkRepository) GetAll() ([]model.Produk, error) {
 	return products, nil
 }
 
-// GetAllWithCategory menggunakan SQL JOIN untuk mendapatkan produk beserta kategorinya
-func (r *produkRepository) GetAllWithCategory() ([]model.Produk, error) {
+// GetAllWithCategory uses SQL JOIN to get products with their categories
+func (r *productRepository) GetAllWithCategory() ([]model.Product, error) {
 	query := `
 		SELECT 
-			p.id, p.nama, p.harga, p.stok, p.category_id,
+			p.id, p.name, p.price, p.stock, p.category_id,
 			c.id, c.name, c.description
-		FROM produk p
+		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		ORDER BY p.id
 	`
@@ -60,14 +60,14 @@ func (r *produkRepository) GetAllWithCategory() ([]model.Produk, error) {
 	}
 	defer rows.Close()
 
-	var products []model.Produk
+	var products []model.Product
 	for rows.Next() {
-		var p model.Produk
+		var p model.Product
 		var catID, catIDFromJoin sql.NullInt64
 		var catName, catDesc sql.NullString
 
 		if err := rows.Scan(
-			&p.ID, &p.Nama, &p.Harga, &p.Stok, &catID,
+			&p.ID, &p.Name, &p.Price, &p.Stock, &catID,
 			&catIDFromJoin, &catName, &catDesc,
 		); err != nil {
 			return nil, err
@@ -92,13 +92,13 @@ func (r *produkRepository) GetAllWithCategory() ([]model.Produk, error) {
 	return products, nil
 }
 
-func (r *produkRepository) GetByID(id int) (*model.Produk, error) {
-	query := "SELECT id, nama, harga, stok, category_id FROM produk WHERE id = $1"
+func (r *productRepository) GetByID(id int) (*model.Product, error) {
+	query := "SELECT id, name, price, stock, category_id FROM products WHERE id = $1"
 	row := r.db.QueryRow(query, id)
 
-	var p model.Produk
+	var p model.Product
 	var catID sql.NullInt64
-	if err := row.Scan(&p.ID, &p.Nama, &p.Harga, &p.Stok, &catID); err != nil {
+	if err := row.Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &catID); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -113,24 +113,24 @@ func (r *produkRepository) GetByID(id int) (*model.Produk, error) {
 	return &p, nil
 }
 
-// GetByIDWithCategory menggunakan SQL JOIN untuk mendapatkan produk beserta kategorinya
-func (r *produkRepository) GetByIDWithCategory(id int) (*model.Produk, error) {
+// GetByIDWithCategory uses SQL JOIN to get product with its category
+func (r *productRepository) GetByIDWithCategory(id int) (*model.Product, error) {
 	query := `
 		SELECT 
-			p.id, p.nama, p.harga, p.stok, p.category_id,
+			p.id, p.name, p.price, p.stock, p.category_id,
 			c.id, c.name, c.description
-		FROM produk p
+		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE p.id = $1
 	`
 	row := r.db.QueryRow(query, id)
 
-	var p model.Produk
+	var p model.Product
 	var catID, catIDFromJoin sql.NullInt64
 	var catName, catDesc sql.NullString
 
 	if err := row.Scan(
-		&p.ID, &p.Nama, &p.Harga, &p.Stok, &catID,
+		&p.ID, &p.Name, &p.Price, &p.Stock, &catID,
 		&catIDFromJoin, &catName, &catDesc,
 	); err != nil {
 		if err == sql.ErrNoRows {
@@ -155,13 +155,13 @@ func (r *produkRepository) GetByIDWithCategory(id int) (*model.Produk, error) {
 	return &p, nil
 }
 
-// GetByCategoryID mendapatkan semua produk berdasarkan category_id
-func (r *produkRepository) GetByCategoryID(categoryID int) ([]model.Produk, error) {
+// GetByCategoryID gets all products by category_id
+func (r *productRepository) GetByCategoryID(categoryID int) ([]model.Product, error) {
 	query := `
 		SELECT 
-			p.id, p.nama, p.harga, p.stok, p.category_id,
+			p.id, p.name, p.price, p.stock, p.category_id,
 			c.id, c.name, c.description
-		FROM produk p
+		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE p.category_id = $1
 		ORDER BY p.id
@@ -172,14 +172,14 @@ func (r *produkRepository) GetByCategoryID(categoryID int) ([]model.Produk, erro
 	}
 	defer rows.Close()
 
-	var products []model.Produk
+	var products []model.Product
 	for rows.Next() {
-		var p model.Produk
+		var p model.Product
 		var catID, catIDFromJoin sql.NullInt64
 		var catName, catDesc sql.NullString
 
 		if err := rows.Scan(
-			&p.ID, &p.Nama, &p.Harga, &p.Stok, &catID,
+			&p.ID, &p.Name, &p.Price, &p.Stock, &catID,
 			&catIDFromJoin, &catName, &catDesc,
 		); err != nil {
 			return nil, err
@@ -204,14 +204,14 @@ func (r *produkRepository) GetByCategoryID(categoryID int) ([]model.Produk, erro
 	return products, nil
 }
 
-func (r *produkRepository) Create(produk *model.Produk) error {
-	query := "INSERT INTO produk (nama, harga, stok, category_id) VALUES ($1, $2, $3, $4) RETURNING id"
-	return r.db.QueryRow(query, produk.Nama, produk.Harga, produk.Stok, produk.CategoryID).Scan(&produk.ID)
+func (r *productRepository) Create(product *model.Product) error {
+	query := "INSERT INTO products (name, price, stock, category_id) VALUES ($1, $2, $3, $4) RETURNING id"
+	return r.db.QueryRow(query, product.Name, product.Price, product.Stock, product.CategoryID).Scan(&product.ID)
 }
 
-func (r *produkRepository) Update(id int, produk *model.Produk) error {
-	query := "UPDATE produk SET nama = $1, harga = $2, stok = $3, category_id = $4 WHERE id = $5"
-	result, err := r.db.Exec(query, produk.Nama, produk.Harga, produk.Stok, produk.CategoryID, id)
+func (r *productRepository) Update(id int, product *model.Product) error {
+	query := "UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4 WHERE id = $5"
+	result, err := r.db.Exec(query, product.Name, product.Price, product.Stock, product.CategoryID, id)
 	if err != nil {
 		return err
 	}
@@ -225,12 +225,12 @@ func (r *produkRepository) Update(id int, produk *model.Produk) error {
 		return sql.ErrNoRows
 	}
 
-	produk.ID = id
+	product.ID = id
 	return nil
 }
 
-func (r *produkRepository) Delete(id int) error {
-	query := "DELETE FROM produk WHERE id = $1"
+func (r *productRepository) Delete(id int) error {
+	query := "DELETE FROM products WHERE id = $1"
 	result, err := r.db.Exec(query, id)
 	if err != nil {
 		return err

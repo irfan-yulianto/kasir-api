@@ -6,8 +6,8 @@ import (
 	"kasir-api/model"
 )
 
-var ErrInsufficientStock = errors.New("stok tidak mencukupi")
-var ErrProductNotFound = errors.New("produk tidak ditemukan")
+var ErrInsufficientStock = errors.New("insufficient stock")
+var ErrProductNotFound = errors.New("product not found")
 
 type TransactionRepository interface {
 	Checkout(items []model.CheckoutItem) (*model.Transaction, error)
@@ -40,13 +40,13 @@ func (r *transactionRepository) Checkout(items []model.CheckoutItem) (*model.Tra
 	// Process each item
 	for _, item := range items {
 		// Get product details
-		var produkID int
-		var produkNama string
-		var produkHarga int
-		var produkStok int
+		var productID int
+		var productName string
+		var productPrice int
+		var productStock int
 
-		query := "SELECT id, nama, harga, stok FROM produk WHERE id = $1"
-		err = tx.QueryRow(query, item.ProductID).Scan(&produkID, &produkNama, &produkHarga, &produkStok)
+		query := "SELECT id, name, price, stock FROM products WHERE id = $1"
+		err = tx.QueryRow(query, item.ProductID).Scan(&productID, &productName, &productPrice, &productStock)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, ErrProductNotFound
@@ -55,16 +55,16 @@ func (r *transactionRepository) Checkout(items []model.CheckoutItem) (*model.Tra
 		}
 
 		// Validate stock
-		if produkStok < item.Quantity {
+		if productStock < item.Quantity {
 			return nil, ErrInsufficientStock
 		}
 
 		// Calculate subtotal
-		subtotal := produkHarga * item.Quantity
+		subtotal := productPrice * item.Quantity
 		totalAmount += subtotal
 
 		// Update product stock
-		updateQuery := "UPDATE produk SET stok = stok - $1 WHERE id = $2"
+		updateQuery := "UPDATE products SET stock = stock - $1 WHERE id = $2"
 		_, err = tx.Exec(updateQuery, item.Quantity, item.ProductID)
 		if err != nil {
 			return nil, err
@@ -73,7 +73,7 @@ func (r *transactionRepository) Checkout(items []model.CheckoutItem) (*model.Tra
 		// Store detail for later insertion
 		details = append(details, model.TransactionDetail{
 			ProductID:   item.ProductID,
-			ProductName: produkNama,
+			ProductName: productName,
 			Quantity:    item.Quantity,
 			Subtotal:    subtotal,
 		})

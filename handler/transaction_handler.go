@@ -33,17 +33,17 @@ func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Reque
 
 	// Validate request
 	if len(req.Items) == 0 {
-		http.Error(w, "Items tidak boleh kosong", http.StatusBadRequest)
+		http.Error(w, "Items cannot be empty", http.StatusBadRequest)
 		return
 	}
 
 	for _, item := range req.Items {
 		if item.ProductID <= 0 {
-			http.Error(w, "product_id harus valid", http.StatusBadRequest)
+			http.Error(w, "product_id must be valid", http.StatusBadRequest)
 			return
 		}
 		if item.Quantity <= 0 {
-			http.Error(w, "quantity harus lebih dari 0", http.StatusBadRequest)
+			http.Error(w, "quantity must be greater than 0", http.StatusBadRequest)
 			return
 		}
 	}
@@ -52,11 +52,11 @@ func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Reque
 	transaction, err := h.service.Checkout(req)
 	if err != nil {
 		if errors.Is(err, repository.ErrInsufficientStock) {
-			http.Error(w, "Stok tidak mencukupi", http.StatusBadRequest)
+			http.Error(w, "Insufficient stock", http.StatusBadRequest)
 			return
 		}
 		if errors.Is(err, repository.ErrProductNotFound) {
-			http.Error(w, "Produk tidak ditemukan", http.StatusBadRequest)
+			http.Error(w, "Product not found", http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Failed to process checkout", http.StatusInternalServerError)

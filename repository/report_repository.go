@@ -51,12 +51,12 @@ func (r *reportRepository) getSummary(startDate, endDate time.Time) (*model.Sale
 
 	// Get top products
 	topProductsQuery := `
-		SELECT td.product_id, p.nama, SUM(td.quantity) as total_sold
+		SELECT td.product_id, p.name, SUM(td.quantity) as total_sold
 		FROM transaction_details td
 		JOIN transactions t ON td.transaction_id = t.id
-		JOIN produk p ON td.product_id = p.id
+		JOIN products p ON td.product_id = p.id
 		WHERE t.created_at >= $1 AND t.created_at < $2
-		GROUP BY td.product_id, p.nama
+		GROUP BY td.product_id, p.name
 		ORDER BY total_sold DESC
 		LIMIT 5
 	`

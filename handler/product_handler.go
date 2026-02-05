@@ -11,16 +11,16 @@ import (
 	"kasir-api/service"
 )
 
-type ProdukHandler struct {
-	service service.ProdukService
+type ProductHandler struct {
+	service service.ProductService
 }
 
-func NewProdukHandler(service service.ProdukService) *ProdukHandler {
-	return &ProdukHandler{service: service}
+func NewProductHandler(service service.ProductService) *ProductHandler {
+	return &ProductHandler{service: service}
 }
 
-// HandleProduk handles /api/produk (GET all, POST)
-func (h *ProdukHandler) HandleProduk(w http.ResponseWriter, r *http.Request) {
+// HandleProducts handles /api/products (GET all, POST)
+func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		h.getAll(w, r)
@@ -31,12 +31,12 @@ func (h *ProdukHandler) HandleProduk(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleProdukByID handles /api/produk/{id} (GET, PUT, DELETE)
-func (h *ProdukHandler) HandleProdukByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/")
+// HandleProductByID handles /api/products/{id} (GET, PUT, DELETE)
+func (h *ProductHandler) HandleProductByID(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/products/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid Produk ID", http.StatusBadRequest)
+		http.Error(w, "Invalid Product ID", http.StatusBadRequest)
 		return
 	}
 
@@ -52,16 +52,16 @@ func (h *ProdukHandler) HandleProdukByID(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// HandleProdukByCategory handles /api/categories/{id}/produk (GET products by category)
-func (h *ProdukHandler) HandleProdukByCategory(w http.ResponseWriter, r *http.Request) {
+// HandleProductsByCategory handles /api/categories/{id}/products (GET products by category)
+func (h *ProductHandler) HandleProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Extract category ID from path: /api/categories/{id}/produk
+	// Extract category ID from path: /api/categories/{id}/products
 	path := strings.TrimPrefix(r.URL.Path, "/api/categories/")
-	path = strings.TrimSuffix(path, "/produk")
+	path = strings.TrimSuffix(path, "/products")
 	categoryID, err := strconv.Atoi(path)
 	if err != nil {
 		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
@@ -75,18 +75,18 @@ func (h *ProdukHandler) HandleProdukByCategory(w http.ResponseWriter, r *http.Re
 	}
 
 	if products == nil {
-		products = []model.Produk{}
+		products = []model.Product{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
 }
 
-func (h *ProdukHandler) getAll(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	// Check if include_category query param is set
 	includeCategory := r.URL.Query().Get("include_category")
 
-	var products []model.Produk
+	var products []model.Product
 	var err error
 
 	if includeCategory == "true" {
@@ -101,24 +101,24 @@ func (h *ProdukHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if products == nil {
-		products = []model.Produk{}
+		products = []model.Product{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
 }
 
-func (h *ProdukHandler) getByID(w http.ResponseWriter, r *http.Request, id int) {
+func (h *ProductHandler) getByID(w http.ResponseWriter, r *http.Request, id int) {
 	// Check if include_category query param is set
 	includeCategory := r.URL.Query().Get("include_category")
 
-	var produk *model.Produk
+	var product *model.Product
 	var err error
 
 	if includeCategory == "true" {
-		produk, err = h.service.GetByIDWithCategory(id)
+		product, err = h.service.GetByIDWithCategory(id)
 	} else {
-		produk, err = h.service.GetByID(id)
+		product, err = h.service.GetByID(id)
 	}
 
 	if err != nil {
@@ -126,47 +126,47 @@ func (h *ProdukHandler) getByID(w http.ResponseWriter, r *http.Request, id int) 
 		return
 	}
 
-	if produk == nil {
-		http.Error(w, "Produk belum ada", http.StatusNotFound)
+	if product == nil {
+		http.Error(w, "Product not found", http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(produk)
+	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProdukHandler) create(w http.ResponseWriter, r *http.Request) {
-	var produk model.Produk
-	if err := json.NewDecoder(r.Body).Decode(&produk); err != nil {
+func (h *ProductHandler) create(w http.ResponseWriter, r *http.Request) {
+	var product model.Product
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if produk.Nama == "" {
-		http.Error(w, "Nama is required", http.StatusBadRequest)
+	if product.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.service.Create(&produk); err != nil {
+	if err := h.service.Create(&product); err != nil {
 		http.Error(w, "Failed to create product", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(produk)
+	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProdukHandler) update(w http.ResponseWriter, r *http.Request, id int) {
-	var produk model.Produk
-	if err := json.NewDecoder(r.Body).Decode(&produk); err != nil {
+func (h *ProductHandler) update(w http.ResponseWriter, r *http.Request, id int) {
+	var product model.Product
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.service.Update(id, &produk); err != nil {
+	if err := h.service.Update(id, &product); err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Produk belum ada", http.StatusNotFound)
+			http.Error(w, "Product not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, "Failed to update product", http.StatusInternalServerError)
@@ -174,13 +174,13 @@ func (h *ProdukHandler) update(w http.ResponseWriter, r *http.Request, id int) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(produk)
+	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProdukHandler) delete(w http.ResponseWriter, r *http.Request, id int) {
+func (h *ProductHandler) delete(w http.ResponseWriter, r *http.Request, id int) {
 	if err := h.service.Delete(id); err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Produk belum ada", http.StatusNotFound)
+			http.Error(w, "Product not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, "Failed to delete product", http.StatusInternalServerError)
@@ -189,6 +189,6 @@ func (h *ProdukHandler) delete(w http.ResponseWriter, r *http.Request, id int) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "sukses delete",
+		"message": "Product deleted successfully",
 	})
 }
