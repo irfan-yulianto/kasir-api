@@ -3,3 +3,6 @@
 
 # Binary
 kasir-api
+
+# Database schema (contains sensitive structure)
+schema.sql

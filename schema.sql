@@ -1,6 +1,5 @@
 -- ============================================================================
 -- SQL SCHEMA untuk Supabase
--- Jalankan query ini di Supabase SQL Editor
 -- ============================================================================
 
 -- Buat tabel categories
@@ -30,3 +29,23 @@ INSERT INTO produk (nama, harga, stok, category_id) VALUES
     ('Indomie Goreng', 3500, 10, 1),
     ('Vit 1000ml', 3000, 40, 2),
     ('Kecap ABC', 12000, 20, 3);
+
+-- ============================================================================
+-- TRANSACTION TABLES (Session 3)
+-- ============================================================================
+
+-- Buat tabel transactions
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    total_amount INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Buat tabel transaction_details
+CREATE TABLE IF NOT EXISTS transaction_details (
+    id SERIAL PRIMARY KEY,
+    transaction_id INT REFERENCES transactions(id) ON DELETE CASCADE,
+    product_id INT REFERENCES produk(id),
+    quantity INT NOT NULL,
+    subtotal INT NOT NULL
+);

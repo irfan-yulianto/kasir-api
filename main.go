@@ -39,6 +39,16 @@ func main() {
 	produkService := service.NewProdukService(produkRepo)
 	produkHandler := handler.NewProdukHandler(produkService)
 
+	// Transaction layer (Session 3)
+	transactionRepo := repository.NewTransactionRepository(db)
+	transactionService := service.NewTransactionService(transactionRepo)
+	transactionHandler := handler.NewTransactionHandler(transactionService)
+
+	// Report layer (Session 3)
+	reportRepo := repository.NewReportRepository(db)
+	reportService := service.NewReportService(reportRepo)
+	reportHandler := handler.NewReportHandler(reportService)
+
 	// ========================================================================
 	// ROUTES
 	// ========================================================================
@@ -78,6 +88,21 @@ func main() {
 	http.HandleFunc("/api/produk/", produkHandler.HandleProdukByID)
 
 	// ------------------------------------------------------------------------
+	// TRANSACTION ROUTES (Session 3)
+	// ------------------------------------------------------------------------
+
+	// POST /api/checkout - Proses checkout transaksi
+	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout)
+
+	// ------------------------------------------------------------------------
+	// REPORT ROUTES (Session 3)
+	// ------------------------------------------------------------------------
+
+	// GET /api/report/hari-ini - Laporan penjualan hari ini
+	// Optional query params: ?start_date=2026-02-01&end_date=2026-02-05
+	http.HandleFunc("/api/report/hari-ini", reportHandler.HandleTodayReport)
+
+	// ------------------------------------------------------------------------
 	// HEALTH CHECK
 	// ------------------------------------------------------------------------
 
@@ -110,6 +135,8 @@ func main() {
 	fmt.Println("  GET    /api/produk/{id}             (?include_category=true for JOIN)")
 	fmt.Println("  PUT    /api/produk/{id}")
 	fmt.Println("  DELETE /api/produk/{id}")
+	fmt.Println("  POST   /api/checkout                (Session 3: Checkout)")
+	fmt.Println("  GET    /api/report/hari-ini         (Session 3: Sales Report)")
 
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
