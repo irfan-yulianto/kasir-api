@@ -19,7 +19,6 @@ func NewProductHandler(service service.ProductService) *ProductHandler {
 	return &ProductHandler{service: service}
 }
 
-// HandleProducts handles /api/products (GET all, POST)
 func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -31,7 +30,6 @@ func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// HandleProductByID handles /api/products/{id} (GET, PUT, DELETE)
 func (h *ProductHandler) HandleProductByID(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/products/")
 	id, err := strconv.Atoi(idStr)
@@ -52,14 +50,12 @@ func (h *ProductHandler) HandleProductByID(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// HandleProductsByCategory handles /api/categories/{id}/products (GET products by category)
 func (h *ProductHandler) HandleProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Extract category ID from path: /api/categories/{id}/products
 	path := strings.TrimPrefix(r.URL.Path, "/api/categories/")
 	path = strings.TrimSuffix(path, "/products")
 	categoryID, err := strconv.Atoi(path)
@@ -83,7 +79,6 @@ func (h *ProductHandler) HandleProductsByCategory(w http.ResponseWriter, r *http
 }
 
 func (h *ProductHandler) getAll(w http.ResponseWriter, r *http.Request) {
-	// Check if include_category query param is set
 	includeCategory := r.URL.Query().Get("include_category")
 
 	var products []model.Product
@@ -109,7 +104,6 @@ func (h *ProductHandler) getAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) getByID(w http.ResponseWriter, r *http.Request, id int) {
-	// Check if include_category query param is set
 	includeCategory := r.URL.Query().Get("include_category")
 
 	var product *model.Product
@@ -188,7 +182,5 @@ func (h *ProductHandler) delete(w http.ResponseWriter, r *http.Request, id int) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Product deleted successfully",
-	})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Product deleted successfully"})
 }

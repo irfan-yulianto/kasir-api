@@ -19,18 +19,13 @@ func NewReportRepository(db *sql.DB) ReportRepository {
 	return &reportRepository{db: db}
 }
 
-// GetTodaySummary gets sales summary for today
 func (r *reportRepository) GetTodaySummary() (*model.SalesSummary, error) {
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	endOfDay := startOfDay.Add(24 * time.Hour)
-
-	return r.getSummary(startOfDay, endOfDay)
+	return r.getSummary(startOfDay, startOfDay.Add(24*time.Hour))
 }
 
-// GetSummaryByDateRange gets sales summary for a date range
 func (r *reportRepository) GetSummaryByDateRange(startDate, endDate time.Time) (*model.SalesSummary, error) {
-	// Ensure endDate includes the entire day
 	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, endDate.Location())
 	return r.getSummary(startDate, endDate)
 }
@@ -38,19 +33,17 @@ func (r *reportRepository) GetSummaryByDateRange(startDate, endDate time.Time) (
 func (r *reportRepository) getSummary(startDate, endDate time.Time) (*model.SalesSummary, error) {
 	summary := &model.SalesSummary{}
 
-	// Get total revenue and transaction count
-	summaryQuery := `
+	err := r.db.QueryRow(`
 		SELECT COALESCE(SUM(total_amount), 0), COUNT(*)
 		FROM transactions
-		WHERE created_at >= $1 AND created_at < $2
-	`
-	err := r.db.QueryRow(summaryQuery, startDate, endDate).Scan(&summary.TotalRevenue, &summary.TotalTransactions)
+		WHERE created_at >= $1 AND created_at < $2`,
+		startDate, endDate,
+	).Scan(&summary.TotalRevenue, &summary.TotalTransactions)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get top products
-	topProductsQuery := `
+	rows, err := r.db.Query(`
 		SELECT td.product_id, p.name, SUM(td.quantity) as total_sold
 		FROM transaction_details td
 		JOIN transactions t ON td.transaction_id = t.id
@@ -58,9 +51,9 @@ func (r *reportRepository) getSummary(startDate, endDate time.Time) (*model.Sale
 		WHERE t.created_at >= $1 AND t.created_at < $2
 		GROUP BY td.product_id, p.name
 		ORDER BY total_sold DESC
-		LIMIT 5
-	`
-	rows, err := r.db.Query(topProductsQuery, startDate, endDate)
+		LIMIT 5`,
+		startDate, endDate,
+	)
 	if err != nil {
 		return nil, err
 	}

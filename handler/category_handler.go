@@ -19,7 +19,6 @@ func NewCategoryHandler(service service.CategoryService) *CategoryHandler {
 	return &CategoryHandler{service: service}
 }
 
-// HandleCategories handles /api/categories (GET all, POST)
 func (h *CategoryHandler) HandleCategories(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -31,7 +30,6 @@ func (h *CategoryHandler) HandleCategories(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// HandleCategoryByID handles /api/categories/{id} (GET, PUT, DELETE)
 func (h *CategoryHandler) HandleCategoryByID(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/categories/")
 	id, err := strconv.Atoi(idStr)
@@ -75,7 +73,7 @@ func (h *CategoryHandler) getByID(w http.ResponseWriter, r *http.Request, id int
 	}
 
 	if category == nil {
-		http.Error(w, "Category belum ada", http.StatusNotFound)
+		http.Error(w, "Category not found", http.StatusNotFound)
 		return
 	}
 
@@ -114,7 +112,7 @@ func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request, id int)
 
 	if err := h.service.Update(id, &category); err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Category belum ada", http.StatusNotFound)
+			http.Error(w, "Category not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, "Failed to update category", http.StatusInternalServerError)
@@ -128,7 +126,7 @@ func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request, id int)
 func (h *CategoryHandler) delete(w http.ResponseWriter, r *http.Request, id int) {
 	if err := h.service.Delete(id); err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Category belum ada", http.StatusNotFound)
+			http.Error(w, "Category not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, "Failed to delete category", http.StatusInternalServerError)
@@ -136,7 +134,5 @@ func (h *CategoryHandler) delete(w http.ResponseWriter, r *http.Request, id int)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "sukses delete",
-	})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Category deleted successfully"})
 }

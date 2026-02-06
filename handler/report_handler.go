@@ -16,14 +16,12 @@ func NewReportHandler(service service.ReportService) *ReportHandler {
 	return &ReportHandler{service: service}
 }
 
-// HandleTodayReport handles GET /api/report/hari-ini
 func (h *ReportHandler) HandleTodayReport(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Check for date range query parameters
 	startDateStr := r.URL.Query().Get("start_date")
 	endDateStr := r.URL.Query().Get("end_date")
 
@@ -31,7 +29,6 @@ func (h *ReportHandler) HandleTodayReport(w http.ResponseWriter, r *http.Request
 	var err error
 
 	if startDateStr != "" && endDateStr != "" {
-		// Parse dates (format: YYYY-MM-DD)
 		startDate, parseErr := time.Parse("2006-01-02", startDateStr)
 		if parseErr != nil {
 			http.Error(w, "Invalid start_date format. Use YYYY-MM-DD", http.StatusBadRequest)
@@ -45,13 +42,12 @@ func (h *ReportHandler) HandleTodayReport(w http.ResponseWriter, r *http.Request
 		}
 
 		if startDate.After(endDate) {
-			http.Error(w, "start_date harus sebelum end_date", http.StatusBadRequest)
+			http.Error(w, "start_date must be before end_date", http.StatusBadRequest)
 			return
 		}
 
 		summary, err = h.service.GetSummaryByDateRange(startDate, endDate)
 	} else {
-		// Default: today's summary
 		summary, err = h.service.GetTodaySummary()
 	}
 

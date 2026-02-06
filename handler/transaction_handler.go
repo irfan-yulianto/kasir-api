@@ -18,7 +18,6 @@ func NewTransactionHandler(service service.TransactionService) *TransactionHandl
 	return &TransactionHandler{service: service}
 }
 
-// HandleCheckout handles POST /api/checkout
 func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -31,7 +30,6 @@ func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Validate request
 	if len(req.Items) == 0 {
 		http.Error(w, "Items cannot be empty", http.StatusBadRequest)
 		return
@@ -48,7 +46,6 @@ func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	// Process checkout
 	transaction, err := h.service.Checkout(req)
 	if err != nil {
 		if errors.Is(err, repository.ErrInsufficientStock) {
