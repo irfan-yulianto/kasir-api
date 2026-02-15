@@ -171,7 +171,7 @@ func (h *ProductHandler) update(w http.ResponseWriter, r *http.Request, id int) 
 	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProductHandler) delete(w http.ResponseWriter, r *http.Request, id int) {
+func (h *ProductHandler) delete(w http.ResponseWriter, _ *http.Request, id int) {
 	if err := h.service.Delete(id); err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Product not found", http.StatusNotFound)

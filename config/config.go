@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Port   string
 	DBConn string
+	APIKey string
 }
 
 func LoadConfig() *Config {
@@ -29,8 +30,11 @@ func LoadConfig() *Config {
 		log.Fatal("DB_CONN is required in .env file")
 	}
 
+	apiKey := viper.GetString("API_KEY")
+
 	return &Config{
 		Port:   port,
 		DBConn: dbConn,
+		APIKey: apiKey,
 	}
 }

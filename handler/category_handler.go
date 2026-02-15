@@ -50,7 +50,7 @@ func (h *CategoryHandler) HandleCategoryByID(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (h *CategoryHandler) getAll(w http.ResponseWriter, r *http.Request) {
+func (h *CategoryHandler) getAll(w http.ResponseWriter, _ *http.Request) {
 	categories, err := h.service.GetAll()
 	if err != nil {
 		http.Error(w, "Failed to fetch categories", http.StatusInternalServerError)
@@ -65,7 +65,7 @@ func (h *CategoryHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(categories)
 }
 
-func (h *CategoryHandler) getByID(w http.ResponseWriter, r *http.Request, id int) {
+func (h *CategoryHandler) getByID(w http.ResponseWriter, _ *http.Request, id int) {
 	category, err := h.service.GetByID(id)
 	if err != nil {
 		http.Error(w, "Failed to fetch category", http.StatusInternalServerError)
@@ -123,7 +123,7 @@ func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request, id int)
 	json.NewEncoder(w).Encode(category)
 }
 
-func (h *CategoryHandler) delete(w http.ResponseWriter, r *http.Request, id int) {
+func (h *CategoryHandler) delete(w http.ResponseWriter, _ *http.Request, id int) {
 	if err := h.service.Delete(id); err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Category not found", http.StatusNotFound)
