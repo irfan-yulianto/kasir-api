@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"kasir-api/config"
@@ -61,6 +62,21 @@ func main() {
 			"message": "Kasir API Running",
 		})
 	})))
+
+	// Serve frontend static files
+	staticDir := "./static"
+	if _, err := os.Stat(staticDir); err == nil {
+		fs := http.FileServer(http.Dir(staticDir))
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			path := staticDir + r.URL.Path
+			if _, err := os.Stat(path); err != nil {
+				// SPA fallback: serve index.html for non-file routes
+				http.ServeFile(w, r, staticDir+"/index.html")
+				return
+			}
+			fs.ServeHTTP(w, r)
+		})
+	}
 
 	addr := "0.0.0.0:" + cfg.Port
 	fmt.Printf("Server running on %s\n", addr)
