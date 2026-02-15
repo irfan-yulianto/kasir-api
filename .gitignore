@@ -1,8 +1,14 @@
 # Environment variables
 .env
+.env.*
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Go workspace (local per developer)
+go.work
+go.work.sum
 
 # Backend
 backend/kasir-api
