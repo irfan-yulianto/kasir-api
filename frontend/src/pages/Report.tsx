@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
+import { format, startOfMonth } from "date-fns"
+import type { DateRange } from "react-day-picker"
 import { api, type SalesSummary } from "@/lib/api"
 import { formatRupiah } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -12,27 +13,21 @@ import {
 import { toast } from "sonner"
 import { Loader2, BarChart3, DollarSign, ShoppingCart, TrendingUp } from "lucide-react"
 
-function getDefaultDates() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1)
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return {
-    start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
-    end: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
-  }
-}
-
 export default function Report() {
-  const defaults = getDefaultDates()
   const [report, setReport] = useState<SalesSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState(defaults.start)
-  const [endDate, setEndDate] = useState(defaults.end)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: new Date(),
+  })
 
   const fetchReport = async () => {
     setLoading(true)
     try {
-      const data = await api.getReport(startDate || undefined, endDate || undefined)
+      const data = await api.getReport(
+        dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+        dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+      )
       setReport(data)
     } catch {
       toast.error("Gagal memuat laporan")
@@ -49,19 +44,9 @@ export default function Report() {
     <div className="flex-1 overflow-y-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Laporan Penjualan</h1>
 
-      <div className="flex gap-3 mb-6 items-end">
-        <div className="space-y-1">
-          <Label>Dari Tanggal</Label>
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label>Sampai Tanggal</Label>
-          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
+      <div className="flex gap-3 mb-6 items-center">
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
         <Button onClick={handleFilter}>Filter</Button>
-        {(startDate !== defaults.start || endDate !== defaults.end) && (
-          <Button variant="ghost" onClick={() => { setStartDate(defaults.start); setEndDate(defaults.end); setTimeout(fetchReport, 0) }}>Reset</Button>
-        )}
       </div>
 
       {loading ? (

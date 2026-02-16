@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
+import { format, startOfMonth } from "date-fns"
+import type { DateRange } from "react-day-picker"
 import { api, type Transaction } from "@/lib/api"
 import { formatRupiah } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Separator } from "@/components/ui/separator"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -18,15 +19,20 @@ import { Loader2, Receipt, Eye } from "lucide-react"
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: new Date(),
+  })
   const [selected, setSelected] = useState<Transaction | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const data = await api.getTransactions(startDate || undefined, endDate || undefined)
+      const data = await api.getTransactions(
+        dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+        dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+      )
       setTransactions(data)
     } catch {
       toast.error("Gagal memuat transaksi")
@@ -48,19 +54,9 @@ export default function Transactions() {
     <div className="flex-1 overflow-y-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Riwayat Transaksi</h1>
 
-      <div className="flex gap-3 mb-4 items-end">
-        <div className="space-y-1">
-          <Label>Dari Tanggal</Label>
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label>Sampai Tanggal</Label>
-          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
+      <div className="flex gap-3 mb-4 items-center">
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
         <Button onClick={handleFilter}>Filter</Button>
-        {(startDate || endDate) && (
-          <Button variant="ghost" onClick={() => { setStartDate(""); setEndDate(""); setTimeout(fetchData, 0) }}>Reset</Button>
-        )}
       </div>
 
       {loading ? (
