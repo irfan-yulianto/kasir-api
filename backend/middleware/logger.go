@@ -1,20 +1,44 @@
 package middleware
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
 
-func Logger(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		sw := &statusWriter{ResponseWriter: w, status: 200}
 
-		log.Printf("[REQUEST] %s %s dari %s", r.Method, r.RequestURI, r.RemoteAddr)
+		next.ServeHTTP(sw, r)
 
-		next(w, r)
+		requestID, _ := r.Context().Value(RequestIDKey).(string)
 
-		duration := time.Since(start)
-		log.Printf("[DONE]    %s %s selesai dalam %v", r.Method, r.RequestURI, duration)
-	}
+		level := slog.LevelInfo
+		if sw.status >= 500 {
+			level = slog.LevelError
+		} else if sw.status >= 400 {
+			level = slog.LevelWarn
+		}
+
+		slog.Log(r.Context(), level, "request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", sw.status,
+			"duration_ms", time.Since(start).Milliseconds(),
+			"ip", r.RemoteAddr,
+			"request_id", requestID,
+		)
+	})
 }

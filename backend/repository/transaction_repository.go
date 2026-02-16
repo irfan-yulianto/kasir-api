@@ -3,6 +3,9 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
+
 	"kasir-api/model"
 )
 
@@ -124,34 +127,55 @@ func (r *transactionRepository) GetAll(startDate, endDate string) ([]model.Trans
 	defer rows.Close()
 
 	var transactions []model.Transaction
+	var ids []int
+	txMap := make(map[int]*model.Transaction)
+
 	for rows.Next() {
 		var t model.Transaction
 		if err := rows.Scan(&t.ID, &t.TotalAmount, &t.CreatedAt); err != nil {
 			return nil, err
 		}
+		t.Details = []model.TransactionDetail{}
+		transactions = append(transactions, t)
+		ids = append(ids, t.ID)
+		txMap[t.ID] = &transactions[len(transactions)-1]
+	}
 
-		detailRows, err := r.db.Query(
-			`SELECT td.id, td.transaction_id, td.product_id, COALESCE(p.name, 'Deleted Product') as product_name, td.quantity, td.subtotal
-			FROM transaction_details td
-			LEFT JOIN products p ON td.product_id = p.id
-			WHERE td.transaction_id = $1`, t.ID)
-		if err != nil {
+	if len(ids) == 0 {
+		return transactions, nil
+	}
+
+	// Batch fetch all details in one query instead of N+1
+	placeholders := make([]string, len(ids))
+	detailArgs := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		detailArgs[i] = id
+	}
+
+	detailQuery := fmt.Sprintf(`
+		SELECT td.id, td.transaction_id, td.product_id,
+			   COALESCE(p.name, 'Deleted Product') as product_name,
+			   td.quantity, td.subtotal
+		FROM transaction_details td
+		LEFT JOIN products p ON td.product_id = p.id
+		WHERE td.transaction_id IN (%s)
+		ORDER BY td.id`, strings.Join(placeholders, ","))
+
+	detailRows, err := r.db.Query(detailQuery, detailArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer detailRows.Close()
+
+	for detailRows.Next() {
+		var d model.TransactionDetail
+		if err := detailRows.Scan(&d.ID, &d.TransactionID, &d.ProductID, &d.ProductName, &d.Quantity, &d.Subtotal); err != nil {
 			return nil, err
 		}
-
-		var details []model.TransactionDetail
-		for detailRows.Next() {
-			var d model.TransactionDetail
-			if err := detailRows.Scan(&d.ID, &d.TransactionID, &d.ProductID, &d.ProductName, &d.Quantity, &d.Subtotal); err != nil {
-				detailRows.Close()
-				return nil, err
-			}
-			details = append(details, d)
+		if tx, ok := txMap[d.TransactionID]; ok {
+			tx.Details = append(tx.Details, d)
 		}
-		detailRows.Close()
-
-		t.Details = details
-		transactions = append(transactions, t)
 	}
 
 	return transactions, nil

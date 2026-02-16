@@ -2,14 +2,29 @@ const API_BASE = import.meta.env.VITE_API_URL || ""
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem("token")
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options?.headers,
+      },
+    })
+  } catch (err) {
+    clearTimeout(timeoutId)
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Request timeout — server tidak merespons")
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   if (res.status === 401 && !path.startsWith("/api/auth/")) {
     localStorage.removeItem("token")
@@ -21,8 +36,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `Request failed: ${res.status}`)
+    let message = `Request failed: ${res.status}`
+    try {
+      const body = await res.json()
+      if (body.error) message = body.error
+    } catch {
+      const text = await res.text().catch(() => "")
+      if (text) message = text
+    }
+    throw new Error(message)
   }
 
   return res.json()

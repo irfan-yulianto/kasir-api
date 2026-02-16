@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
-	"fmt"
+	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"kasir-api/config"
 	"kasir-api/database"
@@ -44,19 +50,21 @@ func main() {
 	jwtAuth := middleware.JWTAuth(cfg.JWTSecret)
 	adminOnly := middleware.RequireRole("admin")
 
+	mux := http.NewServeMux()
+
 	// Auth routes (public)
-	http.HandleFunc("/api/auth/login", middleware.CORS(middleware.Logger(authHandler.HandleLogin)))
-	http.HandleFunc("/api/auth/register", middleware.CORS(middleware.Logger(jwtAuth(adminOnly(authHandler.HandleRegister)))))
+	mux.HandleFunc("/api/auth/login", authHandler.HandleLogin)
+	mux.HandleFunc("/api/auth/register", jwtAuth(adminOnly(authHandler.HandleRegister)))
 
 	// Categories: GET all roles, POST/PUT/DELETE admin only
-	http.HandleFunc("/api/categories", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/categories", jwtAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			adminOnly(categoryHandler.HandleCategories)(w, r)
 			return
 		}
 		categoryHandler.HandleCategories(w, r)
-	}))))
-	http.HandleFunc("/api/categories/", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	mux.HandleFunc("/api/categories/", jwtAuth(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/products") {
 			productHandler.HandleProductsByCategory(w, r)
 			return
@@ -66,50 +74,43 @@ func main() {
 			return
 		}
 		categoryHandler.HandleCategoryByID(w, r)
-	}))))
+	}))
 
 	// Products: GET all roles, POST/PUT/DELETE admin only
-	http.HandleFunc("/api/products", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/products", jwtAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			adminOnly(productHandler.HandleProducts)(w, r)
 			return
 		}
 		productHandler.HandleProducts(w, r)
-	}))))
-	http.HandleFunc("/api/products/", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	mux.HandleFunc("/api/products/", jwtAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut || r.Method == http.MethodDelete {
 			adminOnly(productHandler.HandleProductByID)(w, r)
 			return
 		}
 		productHandler.HandleProductByID(w, r)
-	}))))
+	}))
 
 	// Checkout: all authenticated roles
-	http.HandleFunc("/api/checkout", middleware.CORS(middleware.Logger(jwtAuth(transactionHandler.HandleCheckout))))
+	mux.HandleFunc("/api/checkout", jwtAuth(transactionHandler.HandleCheckout))
 
 	// Transactions: all authenticated roles
-	http.HandleFunc("/api/transactions", middleware.CORS(middleware.Logger(jwtAuth(transactionHandler.HandleTransactions))))
+	mux.HandleFunc("/api/transactions", jwtAuth(transactionHandler.HandleTransactions))
 
 	// Reports: all authenticated roles
-	http.HandleFunc("/api/report/today", middleware.CORS(middleware.Logger(jwtAuth(reportHandler.HandleTodayReport))))
+	mux.HandleFunc("/api/report/today", jwtAuth(reportHandler.HandleTodayReport))
 
-	// Health check (public)
-	http.HandleFunc("/health", middleware.CORS(middleware.Logger(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "OK",
-			"message": "Kasir API Running",
-		})
-	})))
+	// Health check (public, with DB ping)
+	mux.HandleFunc("/health", healthHandler(db))
 
 	// Serve frontend static files
 	staticDir := "./static"
 	if _, err := os.Stat(staticDir); err == nil {
 		fs := http.FileServer(http.Dir(staticDir))
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			path := staticDir + r.URL.Path
 			if _, err := os.Stat(path); err != nil {
-				// SPA fallback: serve index.html for non-file routes
 				http.ServeFile(w, r, staticDir+"/index.html")
 				return
 			}
@@ -117,10 +118,70 @@ func main() {
 		})
 	}
 
-	addr := "0.0.0.0:" + cfg.Port
-	fmt.Printf("Server running on %s\n", addr)
+	// Global middleware stack (outermost → innermost)
+	rateLimiter := middleware.NewRateLimiter(10, 30) // 10 req/s, burst 30
 
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		fmt.Printf("Server error: %v\n", err)
+	var h http.Handler = mux
+	h = middleware.JSONErrors(h)
+	h = middleware.MaxBody(1 << 20)(h) // 1MB
+	h = middleware.Recovery(h)
+	h = rateLimiter.Middleware(h)
+	h = middleware.Logger(h)
+	h = middleware.RequestID(h)
+	h = middleware.CORS(cfg.AllowedOrigins)(h)
+
+	addr := "0.0.0.0:" + cfg.Port
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      h,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Start server in goroutine
+	go func() {
+		slog.Info("server started", "addr", addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	slog.Info("shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+	slog.Info("server stopped")
+}
+
+func healthHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status := "OK"
+		dbStatus := "connected"
+		httpCode := http.StatusOK
+
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := db.PingContext(ctx); err != nil {
+			status = "degraded"
+			dbStatus = "disconnected"
+			httpCode = http.StatusServiceUnavailable
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpCode)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":   status,
+			"database": dbStatus,
+		})
 	}
 }
