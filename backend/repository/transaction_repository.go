@@ -42,7 +42,7 @@ func (r *transactionRepository) Checkout(items []model.CheckoutItem) (*model.Tra
 		var productPrice int
 		var productStock int
 
-		err = tx.QueryRow("SELECT id, name, price, stock FROM products WHERE id = $1", item.ProductID).
+		err = tx.QueryRow("SELECT id, name, price, stock FROM products WHERE id = $1 FOR UPDATE", item.ProductID).
 			Scan(&productID, &productName, &productPrice, &productStock)
 		if err != nil {
 			if err == sql.ErrNoRows {

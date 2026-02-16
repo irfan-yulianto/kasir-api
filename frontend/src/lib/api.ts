@@ -1,14 +1,24 @@
 const API_BASE = import.meta.env.VITE_API_URL || ""
-const API_KEY = import.meta.env.VITE_API_KEY || "your-secret-api-key-here"
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("token")
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   })
+
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login"
+    }
+    throw new Error("Sesi berakhir, silakan login kembali")
+  }
 
   if (!res.ok) {
     const text = await res.text()
@@ -16,10 +26,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return res.json()
-}
-
-function authHeaders(): HeadersInit {
-  return { "X-API-Key": API_KEY }
 }
 
 // Models
@@ -75,6 +81,28 @@ export interface TopProduct {
   total_sold: number
 }
 
+export interface AuthResponse {
+  token: string
+  user: { id: number; username: string; role: string; created_at: string }
+}
+
+// Auth API
+export const authApi = {
+  login(username: string, password: string): Promise<AuthResponse> {
+    return request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    })
+  },
+
+  register(username: string, password: string, role: string): Promise<AuthResponse> {
+    return request("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password, role }),
+    })
+  },
+}
+
 // API
 export const api = {
   // Products
@@ -83,7 +111,7 @@ export const api = {
   },
 
   getProduct(id: number): Promise<Product> {
-    return request(`/api/products/${id}?include_category=true`, { headers: authHeaders() })
+    return request(`/api/products/${id}?include_category=true`)
   },
 
   createProduct(data: Partial<Product>): Promise<Product> {
@@ -96,7 +124,6 @@ export const api = {
   updateProduct(id: number, data: Partial<Product>): Promise<Product> {
     return request(`/api/products/${id}`, {
       method: "PUT",
-      headers: authHeaders(),
       body: JSON.stringify(data),
     })
   },
@@ -104,7 +131,6 @@ export const api = {
   deleteProduct(id: number): Promise<{ message: string }> {
     return request(`/api/products/${id}`, {
       method: "DELETE",
-      headers: authHeaders(),
     })
   },
 
@@ -137,7 +163,6 @@ export const api = {
   checkout(data: CheckoutRequest): Promise<Transaction> {
     return request("/api/checkout", {
       method: "POST",
-      headers: authHeaders(),
       body: JSON.stringify(data),
     })
   },

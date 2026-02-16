@@ -3,7 +3,6 @@ import { format, startOfMonth } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { api, type SalesSummary } from "@/lib/api"
 import { formatRupiah } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,9 +35,7 @@ export default function Report() {
     }
   }
 
-  useEffect(() => { fetchReport() }, [])
-
-  const handleFilter = () => { fetchReport() }
+  useEffect(() => { fetchReport() }, [dateRange])
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -46,7 +43,6 @@ export default function Report() {
 
       <div className="flex gap-3 mb-6 items-center">
         <DateRangePicker value={dateRange} onChange={setDateRange} />
-        <Button onClick={handleFilter}>Filter</Button>
       </div>
 
       {loading ? (

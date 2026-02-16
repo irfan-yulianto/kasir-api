@@ -41,9 +41,7 @@ export default function Transactions() {
     }
   }
 
-  useEffect(() => { fetchData() }, [])
-
-  const handleFilter = () => { fetchData() }
+  useEffect(() => { fetchData() }, [dateRange])
 
   const openDetail = (t: Transaction) => {
     setSelected(t)
@@ -56,7 +54,6 @@ export default function Transactions() {
 
       <div className="flex gap-3 mb-4 items-center">
         <DateRangePicker value={dateRange} onChange={setDateRange} />
-        <Button onClick={handleFilter}>Filter</Button>
       </div>
 
       {loading ? (

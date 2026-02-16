@@ -1,19 +1,32 @@
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useNavigate } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
-  ShoppingCart, Package, Tag, Receipt, BarChart3,
+  ShoppingCart, Package, Tag, Receipt, BarChart3, LogOut, User,
 } from "lucide-react"
 
 const navItems = [
   { to: "/", label: "Kasir", icon: ShoppingCart },
-  { to: "/products", label: "Produk", icon: Package, group: "Master Data" },
-  { to: "/categories", label: "Kategori", icon: Tag },
+  { to: "/products", label: "Produk", icon: Package, group: "Master Data", roles: ["admin"] },
+  { to: "/categories", label: "Kategori", icon: Tag, roles: ["admin"] },
   { to: "/transactions", label: "Riwayat Transaksi", icon: Receipt, group: "Transaksi" },
   { to: "/report", label: "Penjualan", icon: BarChart3, group: "Laporan" },
 ]
 
 export default function Layout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   let lastGroup = ""
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login")
+  }
+
+  const visibleItems = navItems.filter(
+    (item) => !item.roles || (user && item.roles.includes(user.role))
+  )
 
   return (
     <div className="flex h-screen bg-background">
@@ -23,7 +36,7 @@ export default function Layout() {
           <h1 className="text-lg font-bold">Kasir App</h1>
         </div>
         <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const showGroup = item.group && item.group !== lastGroup
             if (item.group) lastGroup = item.group
             return (
@@ -52,6 +65,20 @@ export default function Layout() {
             )
           })}
         </nav>
+        {/* User info + Logout */}
+        <div className="border-t p-3 space-y-2">
+          <div className="flex items-center gap-2 px-3 py-1">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user?.username}</p>
+              <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </aside>
 
       {/* Main */}

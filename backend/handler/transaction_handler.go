@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"kasir-api/model"
 	"kasir-api/repository"
@@ -26,6 +27,19 @@ func (h *TransactionHandler) HandleTransactions(w http.ResponseWriter, r *http.R
 
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
+
+	if startDate != "" {
+		if _, err := time.Parse("2006-01-02", startDate); err != nil {
+			http.Error(w, "Invalid start_date format. Use YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+	}
+	if endDate != "" {
+		if _, err := time.Parse("2006-01-02", endDate); err != nil {
+			http.Error(w, "Invalid end_date format. Use YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+	}
 
 	transactions, err := h.service.GetAll(startDate, endDate)
 	if err != nil {
@@ -63,8 +77,8 @@ func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Reque
 			http.Error(w, "product_id must be valid", http.StatusBadRequest)
 			return
 		}
-		if item.Quantity <= 0 {
-			http.Error(w, "quantity must be greater than 0", http.StatusBadRequest)
+		if item.Quantity <= 0 || item.Quantity > 1000 {
+			http.Error(w, "quantity must be between 1 and 1000", http.StatusBadRequest)
 			return
 		}
 	}

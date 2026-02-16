@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { Toaster } from "@/components/ui/sonner"
 import Layout from "@/components/Layout"
+import ProtectedRoute from "@/components/ProtectedRoute"
+import Login from "@/pages/Login"
 import Kasir from "@/pages/Kasir"
 import Products from "@/pages/Products"
 import Categories from "@/pages/Categories"
@@ -11,10 +13,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<Kasir />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/categories" element={<Categories />} />
+          <Route path="/products" element={
+            <ProtectedRoute allowedRoles={["admin"]}><Products /></ProtectedRoute>
+          } />
+          <Route path="/categories" element={
+            <ProtectedRoute allowedRoles={["admin"]}><Categories /></ProtectedRoute>
+          } />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/report" element={<Report />} />
         </Route>

@@ -37,26 +37,63 @@ func main() {
 	reportService := service.NewReportService(reportRepo)
 	reportHandler := handler.NewReportHandler(reportService)
 
-	apiKeyMiddleware := middleware.APIKey(cfg.APIKey)
+	userRepo := repository.NewUserRepository(db)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.JWTExpiry)
+	authHandler := handler.NewAuthHandler(authService)
 
-	http.HandleFunc("/api/categories", middleware.CORS(middleware.Logger(categoryHandler.HandleCategories)))
-	http.HandleFunc("/api/categories/", middleware.CORS(middleware.Logger(func(w http.ResponseWriter, r *http.Request) {
+	jwtAuth := middleware.JWTAuth(cfg.JWTSecret)
+	adminOnly := middleware.RequireRole("admin")
+
+	// Auth routes (public)
+	http.HandleFunc("/api/auth/login", middleware.CORS(middleware.Logger(authHandler.HandleLogin)))
+	http.HandleFunc("/api/auth/register", middleware.CORS(middleware.Logger(jwtAuth(adminOnly(authHandler.HandleRegister)))))
+
+	// Categories: GET all roles, POST/PUT/DELETE admin only
+	http.HandleFunc("/api/categories", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			adminOnly(categoryHandler.HandleCategories)(w, r)
+			return
+		}
+		categoryHandler.HandleCategories(w, r)
+	}))))
+	http.HandleFunc("/api/categories/", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/products") {
 			productHandler.HandleProductsByCategory(w, r)
 			return
 		}
+		if r.Method == http.MethodPut || r.Method == http.MethodDelete {
+			adminOnly(categoryHandler.HandleCategoryByID)(w, r)
+			return
+		}
 		categoryHandler.HandleCategoryByID(w, r)
-	})))
+	}))))
 
-	http.HandleFunc("/api/products", middleware.CORS(middleware.Logger(productHandler.HandleProducts)))
-	http.HandleFunc("/api/products/", middleware.CORS(middleware.Logger(apiKeyMiddleware(productHandler.HandleProductByID))))
+	// Products: GET all roles, POST/PUT/DELETE admin only
+	http.HandleFunc("/api/products", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			adminOnly(productHandler.HandleProducts)(w, r)
+			return
+		}
+		productHandler.HandleProducts(w, r)
+	}))))
+	http.HandleFunc("/api/products/", middleware.CORS(middleware.Logger(jwtAuth(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut || r.Method == http.MethodDelete {
+			adminOnly(productHandler.HandleProductByID)(w, r)
+			return
+		}
+		productHandler.HandleProductByID(w, r)
+	}))))
 
-	http.HandleFunc("/api/checkout", middleware.CORS(middleware.Logger(apiKeyMiddleware(transactionHandler.HandleCheckout))))
+	// Checkout: all authenticated roles
+	http.HandleFunc("/api/checkout", middleware.CORS(middleware.Logger(jwtAuth(transactionHandler.HandleCheckout))))
 
-	http.HandleFunc("/api/transactions", middleware.CORS(middleware.Logger(transactionHandler.HandleTransactions)))
+	// Transactions: all authenticated roles
+	http.HandleFunc("/api/transactions", middleware.CORS(middleware.Logger(jwtAuth(transactionHandler.HandleTransactions))))
 
-	http.HandleFunc("/api/report/today", middleware.CORS(middleware.Logger(reportHandler.HandleTodayReport)))
+	// Reports: all authenticated roles
+	http.HandleFunc("/api/report/today", middleware.CORS(middleware.Logger(jwtAuth(reportHandler.HandleTodayReport))))
 
+	// Health check (public)
 	http.HandleFunc("/health", middleware.CORS(middleware.Logger(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{

@@ -136,8 +136,8 @@ func (h *ProductHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if product.Name == "" {
-		http.Error(w, "Name is required", http.StatusBadRequest)
+	if product.Name == "" || len(product.Name) > 255 {
+		http.Error(w, "Name is required and max 255 characters", http.StatusBadRequest)
 		return
 	}
 	if product.Price < 0 {
@@ -166,8 +166,8 @@ func (h *ProductHandler) update(w http.ResponseWriter, r *http.Request, id int) 
 		return
 	}
 
-	if product.Name == "" {
-		http.Error(w, "Name is required", http.StatusBadRequest)
+	if product.Name == "" || len(product.Name) > 255 {
+		http.Error(w, "Name is required and max 255 characters", http.StatusBadRequest)
 		return
 	}
 	if product.Price < 0 {

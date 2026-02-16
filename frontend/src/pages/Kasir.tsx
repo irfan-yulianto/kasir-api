@@ -20,9 +20,20 @@ export default function Kasir() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("kasir-cart")
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
   const [receipt, setReceipt] = useState<Transaction | null>(null)
   const [checkingOut, setCheckingOut] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem("kasir-cart", JSON.stringify(cart))
+  }, [cart])
 
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -76,6 +87,23 @@ export default function Kasir() {
     if (cart.length === 0) return
     setCheckingOut(true)
     try {
+      // Revalidate stock before checkout
+      const freshProducts = await api.getProducts()
+      for (const item of cart) {
+        const fresh = freshProducts.find((p) => p.id === item.product.id)
+        if (!fresh) {
+          toast.error(`Produk "${item.product.name}" tidak ditemukan lagi`)
+          setCheckingOut(false)
+          return
+        }
+        if (fresh.stock < item.quantity) {
+          toast.error(`Stok "${item.product.name}" tidak cukup (tersedia: ${fresh.stock})`)
+          setProducts(freshProducts)
+          setCheckingOut(false)
+          return
+        }
+      }
+
       const result = await api.checkout({
         items: cart.map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
       })

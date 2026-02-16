@@ -7,9 +7,11 @@ import (
 )
 
 type Config struct {
-	Port   string
-	DBConn string
-	APIKey string
+	Port      string
+	DBConn    string
+	APIKey    string
+	JWTSecret string
+	JWTExpiry int
 }
 
 func LoadConfig() *Config {
@@ -32,9 +34,22 @@ func LoadConfig() *Config {
 
 	apiKey := viper.GetString("API_KEY")
 
+	jwtSecret := viper.GetString("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "kasir-secret-key-change-in-production"
+		log.Println("Warning: JWT_SECRET not set, using default (not safe for production)")
+	}
+
+	jwtExpiry := viper.GetInt("JWT_EXPIRY_HOURS")
+	if jwtExpiry == 0 {
+		jwtExpiry = 24
+	}
+
 	return &Config{
-		Port:   port,
-		DBConn: dbConn,
-		APIKey: apiKey,
+		Port:      port,
+		DBConn:    dbConn,
+		APIKey:    apiKey,
+		JWTSecret: jwtSecret,
+		JWTExpiry: jwtExpiry,
 	}
 }
