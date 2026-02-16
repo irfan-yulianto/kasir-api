@@ -126,8 +126,8 @@ export default function Kasir() {
                       {product.stock > 0 ? `Stok: ${product.stock}` : "Habis"}
                     </Badge>
                   </div>
-                  {product.category_name && (
-                    <Badge variant="outline" className="w-fit">{product.category_name}</Badge>
+                  {product.category?.name && (
+                    <Badge variant="outline" className="w-fit">{product.category.name}</Badge>
                   )}
                 </CardHeader>
                 <CardContent className="flex-1">

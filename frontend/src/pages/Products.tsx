@@ -155,7 +155,7 @@ export default function Products() {
                 <tr key={product.id} className="border-t">
                   <td className="p-3 font-medium">{product.name}</td>
                   <td className="p-3">
-                    {product.category_name ? <Badge variant="outline">{product.category_name}</Badge> : <span className="text-muted-foreground">-</span>}
+                    {product.category?.name ? <Badge variant="outline">{product.category.name}</Badge> : <span className="text-muted-foreground">-</span>}
                   </td>
                   <td className="p-3 text-right">{formatRupiah(product.price)}</td>
                   <td className="p-3 text-right">

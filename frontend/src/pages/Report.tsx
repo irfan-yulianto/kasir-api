@@ -8,11 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2, BarChart3, DollarSign, ShoppingCart, TrendingUp } from "lucide-react"
 
+function getDefaultDates() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return {
+    start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+    end: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+  }
+}
+
 export default function Report() {
+  const defaults = getDefaultDates()
   const [report, setReport] = useState<SalesSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
+  const [startDate, setStartDate] = useState(defaults.start)
+  const [endDate, setEndDate] = useState(defaults.end)
 
   const fetchReport = async () => {
     setLoading(true)
@@ -44,8 +55,8 @@ export default function Report() {
           <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <Button onClick={handleFilter}>Filter</Button>
-        {(startDate || endDate) && (
-          <Button variant="ghost" onClick={() => { setStartDate(""); setEndDate(""); setTimeout(fetchReport, 0) }}>Reset</Button>
+        {(startDate !== defaults.start || endDate !== defaults.end) && (
+          <Button variant="ghost" onClick={() => { setStartDate(defaults.start); setEndDate(defaults.end); setTimeout(fetchReport, 0) }}>Reset</Button>
         )}
       </div>
 

@@ -29,7 +29,7 @@ export interface Product {
   price: number
   stock: number
   category_id?: number | null
-  category_name?: string
+  category?: Category
 }
 
 export interface Category {
