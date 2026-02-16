@@ -4,7 +4,11 @@ import { formatRupiah } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -45,12 +49,12 @@ export default function Transactions() {
       <h1 className="text-2xl font-bold mb-6">Riwayat Transaksi</h1>
 
       <div className="flex gap-3 mb-4 items-end">
-        <div>
-          <label className="text-sm font-medium">Dari Tanggal</label>
+        <div className="space-y-1">
+          <Label>Dari Tanggal</Label>
           <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
-        <div>
-          <label className="text-sm font-medium">Sampai Tanggal</label>
+        <div className="space-y-1">
+          <Label>Sampai Tanggal</Label>
           <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <Button onClick={handleFilter}>Filter</Button>
@@ -70,32 +74,32 @@ export default function Transactions() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-3 font-medium">ID</th>
-                <th className="text-left p-3 font-medium">Tanggal</th>
-                <th className="text-right p-3 font-medium">Jumlah Item</th>
-                <th className="text-right p-3 font-medium">Total</th>
-                <th className="text-right p-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Tanggal</TableHead>
+                <TableHead className="text-right">Jumlah Item</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {transactions.map((t) => (
-                <tr key={t.id} className="border-t">
-                  <td className="p-3"><Badge variant="outline">#{t.id}</Badge></td>
-                  <td className="p-3">{new Date(t.created_at).toLocaleString("id-ID")}</td>
-                  <td className="p-3 text-right">{t.details?.length || 0} item</td>
-                  <td className="p-3 text-right font-medium">{formatRupiah(t.total_amount)}</td>
-                  <td className="p-3 text-right">
+                <TableRow key={t.id}>
+                  <TableCell><Badge variant="outline">#{t.id}</Badge></TableCell>
+                  <TableCell>{new Date(t.created_at).toLocaleString("id-ID")}</TableCell>
+                  <TableCell className="text-right">{t.details?.length || 0} item</TableCell>
+                  <TableCell className="text-right font-medium">{formatRupiah(t.total_amount)}</TableCell>
+                  <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => openDetail(t)}>
                       <Eye className="h-3 w-3" /> Detail
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

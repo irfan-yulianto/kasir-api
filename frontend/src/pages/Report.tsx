@@ -3,8 +3,12 @@ import { api, type SalesSummary } from "@/lib/api"
 import { formatRupiah } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 import { toast } from "sonner"
 import { Loader2, BarChart3, DollarSign, ShoppingCart, TrendingUp } from "lucide-react"
 
@@ -46,12 +50,12 @@ export default function Report() {
       <h1 className="text-2xl font-bold mb-6">Laporan Penjualan</h1>
 
       <div className="flex gap-3 mb-6 items-end">
-        <div>
-          <label className="text-sm font-medium">Dari Tanggal</label>
+        <div className="space-y-1">
+          <Label>Dari Tanggal</Label>
           <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
-        <div>
-          <label className="text-sm font-medium">Sampai Tanggal</label>
+        <div className="space-y-1">
+          <Label>Sampai Tanggal</Label>
           <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <Button onClick={handleFilter}>Filter</Button>
@@ -112,24 +116,24 @@ export default function Report() {
           <h2 className="text-lg font-semibold mb-3">Top Produk Terlaris</h2>
           {report.top_products && report.top_products.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Peringkat</th>
-                    <th className="text-left p-3 font-medium">Produk</th>
-                    <th className="text-right p-3 font-medium">Total Terjual</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Peringkat</TableHead>
+                    <TableHead>Produk</TableHead>
+                    <TableHead className="text-right">Total Terjual</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {report.top_products.map((p, i) => (
-                    <tr key={p.product_id} className="border-t">
-                      <td className="p-3"><Badge variant="outline">#{i + 1}</Badge></td>
-                      <td className="p-3 font-medium">{p.product_name}</td>
-                      <td className="p-3 text-right">{p.total_sold} item</td>
-                    </tr>
+                    <TableRow key={p.product_id}>
+                      <TableCell><Badge variant="outline">#{i + 1}</Badge></TableCell>
+                      <TableCell className="font-medium">{p.product_name}</TableCell>
+                      <TableCell className="text-right">{p.total_sold} item</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">Belum ada data produk terjual</p>

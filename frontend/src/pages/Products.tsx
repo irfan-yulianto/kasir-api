@@ -4,6 +4,13 @@ import { formatRupiah } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -117,16 +124,17 @@ export default function Products() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <select
-          className="border rounded-md px-3 py-2 text-sm bg-background"
-          value={filterCategory || ""}
-          onChange={(e) => setFilterCategory(e.target.value ? Number(e.target.value) : null)}
-        >
-          <option value="">Semua Kategori</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <Select value={filterCategory ? String(filterCategory) : "all"} onValueChange={(val) => setFilterCategory(val === "all" ? null : Number(val))}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Semua Kategori" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Kategori</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (
@@ -140,30 +148,30 @@ export default function Products() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-3 font-medium">Nama</th>
-                <th className="text-left p-3 font-medium">Kategori</th>
-                <th className="text-right p-3 font-medium">Harga</th>
-                <th className="text-right p-3 font-medium">Stok</th>
-                <th className="text-right p-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead className="text-right">Harga</TableHead>
+                <TableHead className="text-right">Stok</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((product) => (
-                <tr key={product.id} className="border-t">
-                  <td className="p-3 font-medium">{product.name}</td>
-                  <td className="p-3">
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>
                     {product.category?.name ? <Badge variant="outline">{product.category.name}</Badge> : <span className="text-muted-foreground">-</span>}
-                  </td>
-                  <td className="p-3 text-right">{formatRupiah(product.price)}</td>
-                  <td className="p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">{formatRupiah(product.price)}</TableCell>
+                  <TableCell className="text-right">
                     <Badge variant={product.stock > 5 ? "secondary" : product.stock > 0 ? "outline" : "destructive"}>
                       {product.stock}
                     </Badge>
-                  </td>
-                  <td className="p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
                         <Pencil className="h-3 w-3" />
@@ -172,11 +180,11 @@ export default function Products() {
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -188,21 +196,22 @@ export default function Products() {
             <DialogDescription>{selected ? "Ubah informasi produk" : "Tambahkan produk baru"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium">Nama</label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div><label className="text-sm font-medium">Harga</label><Input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
-            <div><label className="text-sm font-medium">Stok</label><Input type="number" min={0} value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} /></div>
-            <div>
-              <label className="text-sm font-medium">Kategori</label>
-              <select
-                className="w-full border rounded-md px-3 py-2 text-sm bg-background mt-1"
-                value={form.category_id}
-                onChange={(e) => setForm({ ...form, category_id: Number(e.target.value) })}
-              >
-                <option value={0}>Tanpa Kategori</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+            <div className="space-y-1"><Label>Nama</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Harga</Label><Input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
+            <div className="space-y-1"><Label>Stok</Label><Input type="number" min={0} value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} /></div>
+            <div className="space-y-1">
+              <Label>Kategori</Label>
+              <Select value={String(form.category_id)} onValueChange={(val) => setForm({ ...form, category_id: Number(val) })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tanpa Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Tanpa Kategori</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

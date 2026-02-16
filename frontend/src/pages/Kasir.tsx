@@ -202,7 +202,7 @@ export default function Kasir() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium w-20 text-right">{formatRupiah(item.product.price * item.quantity)}</p>
-                    <button className="text-xs text-destructive hover:underline" onClick={() => removeFromCart(item.product.id)}>Hapus</button>
+                    <Button variant="link" size="sm" className="h-auto p-0 text-xs text-destructive" onClick={() => removeFromCart(item.product.id)}>Hapus</Button>
                   </div>
                 </div>
               ))}

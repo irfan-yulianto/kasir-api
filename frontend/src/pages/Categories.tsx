@@ -2,6 +2,10 @@ import { useEffect, useState } from "react"
 import { api, type Category } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -100,22 +104,22 @@ export default function Categories() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-3 font-medium">ID</th>
-                <th className="text-left p-3 font-medium">Nama</th>
-                <th className="text-left p-3 font-medium">Deskripsi</th>
-                <th className="text-right p-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nama</TableHead>
+                <TableHead>Deskripsi</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {categories.map((cat) => (
-                <tr key={cat.id} className="border-t">
-                  <td className="p-3 text-muted-foreground">{cat.id}</td>
-                  <td className="p-3 font-medium">{cat.name}</td>
-                  <td className="p-3 text-muted-foreground">{cat.description || "-"}</td>
-                  <td className="p-3 text-right">
+                <TableRow key={cat.id}>
+                  <TableCell className="text-muted-foreground">{cat.id}</TableCell>
+                  <TableCell className="font-medium">{cat.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{cat.description || "-"}</TableCell>
+                  <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
                         <Pencil className="h-3 w-3" />
@@ -124,11 +128,11 @@ export default function Categories() {
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -140,8 +144,8 @@ export default function Categories() {
             <DialogDescription>{selected ? "Ubah informasi kategori" : "Tambahkan kategori baru"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium">Nama</label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div><label className="text-sm font-medium">Deskripsi</label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Nama</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Deskripsi</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>Batal</Button>
