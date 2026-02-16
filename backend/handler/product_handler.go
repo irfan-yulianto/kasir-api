@@ -140,6 +140,14 @@ func (h *ProductHandler) create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Name is required", http.StatusBadRequest)
 		return
 	}
+	if product.Price < 0 {
+		http.Error(w, "Price must be >= 0", http.StatusBadRequest)
+		return
+	}
+	if product.Stock < 0 {
+		http.Error(w, "Stock must be >= 0", http.StatusBadRequest)
+		return
+	}
 
 	if err := h.service.Create(&product); err != nil {
 		http.Error(w, "Failed to create product", http.StatusInternalServerError)
@@ -155,6 +163,19 @@ func (h *ProductHandler) update(w http.ResponseWriter, r *http.Request, id int) 
 	var product model.Product
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if product.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+	if product.Price < 0 {
+		http.Error(w, "Price must be >= 0", http.StatusBadRequest)
+		return
+	}
+	if product.Stock < 0 {
+		http.Error(w, "Stock must be >= 0", http.StatusBadRequest)
 		return
 	}
 

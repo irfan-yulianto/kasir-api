@@ -22,6 +22,7 @@ function authHeaders(): HeadersInit {
   return { "X-API-Key": API_KEY }
 }
 
+// Models
 export interface Product {
   id: number
   name: string
@@ -29,6 +30,12 @@ export interface Product {
   stock: number
   category_id?: number | null
   category_name?: string
+}
+
+export interface Category {
+  id: number
+  name: string
+  description: string
 }
 
 export interface Transaction {
@@ -56,13 +63,34 @@ export interface CheckoutRequest {
   items: CheckoutItem[]
 }
 
+export interface SalesSummary {
+  total_revenue: number
+  total_transactions: number
+  top_products: TopProduct[]
+}
+
+export interface TopProduct {
+  product_id: number
+  product_name: string
+  total_sold: number
+}
+
+// API
 export const api = {
+  // Products
   getProducts(): Promise<Product[]> {
-    return request("/api/products")
+    return request("/api/products?include_category=true")
   },
 
   getProduct(id: number): Promise<Product> {
-    return request(`/api/products/${id}`, { headers: authHeaders() })
+    return request(`/api/products/${id}?include_category=true`, { headers: authHeaders() })
+  },
+
+  createProduct(data: Partial<Product>): Promise<Product> {
+    return request("/api/products", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   },
 
   updateProduct(id: number, data: Partial<Product>): Promise<Product> {
@@ -80,11 +108,54 @@ export const api = {
     })
   },
 
+  // Categories
+  getCategories(): Promise<Category[]> {
+    return request("/api/categories")
+  },
+
+  createCategory(data: Partial<Category>): Promise<Category> {
+    return request("/api/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+
+  updateCategory(id: number, data: Partial<Category>): Promise<Category> {
+    return request(`/api/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  },
+
+  deleteCategory(id: number): Promise<{ message: string }> {
+    return request(`/api/categories/${id}`, {
+      method: "DELETE",
+    })
+  },
+
+  // Transactions
   checkout(data: CheckoutRequest): Promise<Transaction> {
     return request("/api/checkout", {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(data),
     })
+  },
+
+  getTransactions(startDate?: string, endDate?: string): Promise<Transaction[]> {
+    const params = new URLSearchParams()
+    if (startDate) params.set("start_date", startDate)
+    if (endDate) params.set("end_date", endDate)
+    const qs = params.toString()
+    return request(`/api/transactions${qs ? `?${qs}` : ""}`)
+  },
+
+  // Reports
+  getReport(startDate?: string, endDate?: string): Promise<SalesSummary> {
+    const params = new URLSearchParams()
+    if (startDate) params.set("start_date", startDate)
+    if (endDate) params.set("end_date", endDate)
+    const qs = params.toString()
+    return request(`/api/report/today${qs ? `?${qs}` : ""}`)
   },
 }

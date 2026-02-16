@@ -110,6 +110,11 @@ func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request, id int)
 		return
 	}
 
+	if category.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.service.Update(id, &category); err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Category not found", http.StatusNotFound)

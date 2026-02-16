@@ -53,6 +53,8 @@ func main() {
 
 	http.HandleFunc("/api/checkout", middleware.CORS(middleware.Logger(apiKeyMiddleware(transactionHandler.HandleCheckout))))
 
+	http.HandleFunc("/api/transactions", middleware.CORS(middleware.Logger(transactionHandler.HandleTransactions)))
+
 	http.HandleFunc("/api/report/today", middleware.CORS(middleware.Logger(reportHandler.HandleTodayReport)))
 
 	http.HandleFunc("/health", middleware.CORS(middleware.Logger(func(w http.ResponseWriter, r *http.Request) {

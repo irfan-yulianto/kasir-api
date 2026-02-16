@@ -11,6 +11,7 @@ var ErrProductNotFound = errors.New("product not found")
 
 type TransactionRepository interface {
 	Checkout(items []model.CheckoutItem) (*model.Transaction, error)
+	GetAll(startDate, endDate string) ([]model.Transaction, error)
 }
 
 type transactionRepository struct {
@@ -103,4 +104,55 @@ func (r *transactionRepository) Checkout(items []model.CheckoutItem) (*model.Tra
 	transaction.Details = details
 
 	return &transaction, nil
+}
+
+func (r *transactionRepository) GetAll(startDate, endDate string) ([]model.Transaction, error) {
+	query := `SELECT id, total_amount, created_at FROM transactions`
+	var args []interface{}
+
+	if startDate != "" && endDate != "" {
+		query += ` WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'`
+		args = append(args, startDate, endDate)
+	}
+
+	query += ` ORDER BY created_at DESC`
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []model.Transaction
+	for rows.Next() {
+		var t model.Transaction
+		if err := rows.Scan(&t.ID, &t.TotalAmount, &t.CreatedAt); err != nil {
+			return nil, err
+		}
+
+		detailRows, err := r.db.Query(
+			`SELECT td.id, td.transaction_id, td.product_id, COALESCE(p.name, 'Deleted Product') as product_name, td.quantity, td.subtotal
+			FROM transaction_details td
+			LEFT JOIN products p ON td.product_id = p.id
+			WHERE td.transaction_id = $1`, t.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		var details []model.TransactionDetail
+		for detailRows.Next() {
+			var d model.TransactionDetail
+			if err := detailRows.Scan(&d.ID, &d.TransactionID, &d.ProductID, &d.ProductName, &d.Quantity, &d.Subtotal); err != nil {
+				detailRows.Close()
+				return nil, err
+			}
+			details = append(details, d)
+		}
+		detailRows.Close()
+
+		t.Details = details
+		transactions = append(transactions, t)
+	}
+
+	return transactions, nil
 }
